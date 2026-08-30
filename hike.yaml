@@ -1,0 +1,56 @@
+hike:
+  title: "Mercantour: mountain weekend"
+  dates: "Friday 04 September — Sunday 06 September 2026"
+  meet_time: "Friday · 07:00 from Antibes / Nice"
+  description_en: "A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings."
+  description_fr: "Une parenthèse de trois jours dans les paysages alpins et méditerranéens sauvages du Parc national du Mercantour : hautes vallées, crêtes minérales et soirées sous les étoiles."
+  travel: "Antibes / Nice → Mercantour trailhead: 2 h 30 drive, then we start hiking."
+
+weather:
+  location: "Mercantour National Park"
+  updated: "Forecast · 04–06 September 2026"
+  temperature: "22–23"
+  feels_like: "16–17"
+  condition: "Sunny, dry and light wind"
+  icon: "☀️"
+  rain: "0.0 mm"
+  wind: "5–7 km/h"
+  humidity: "Low"
+  uv: "High"
+  days:
+    - day: "Fri 04 Sep"
+      high: "22°C"
+      low: "16°C"
+      rain: "0.0 mm"
+      wind: "6 km/h"
+    - day: "Sat 05 Sep"
+      high: "23°C"
+      low: "17°C"
+      rain: "0.0 mm · 5%"
+      wind: "7 km/h"
+    - day: "Sun 06 Sep"
+      high: "22°C"
+      low: "17°C"
+      rain: "0.0 mm · 17%"
+      wind: "5 km/h"
+
+route:
+  gpx_url: "./mercantour-route.gpx"
+  distance: "28.3 km"
+  ascent: "2,325 m"
+  descent: "2,325 m"
+  max_grade: "Steep alpine terrain"
+  duration: "3 days"
+  highest_point: "2,688 m"
+  difficulty: "Challenging multi-day hike"
+  description: "A demanding 28.3 km GPX route with 2,325 m ascent and descent. Expect sustained climbing, high-altitude exposure and changing mountain conditions."
+  elevation_profile: [1684, 1740, 1840, 2010, 2190, 2380, 2560, 2688, 2500, 2320, 2100, 1880, 1684]
+
+wildlife:
+  title: "Wildlife to watch for · Faune à observer"
+  description_en: "Walk quietly and give wildlife space. You may spot Alpine ibex, chamois and marmots; scan the sky for golden eagles or bearded vultures. Wolves are present but exceptionally elusive."
+  description_fr: "Marchez discrètement et gardez vos distances. Vous pourrez apercevoir bouquetins, chamois et marmottes ; levez les yeux pour l’aigle royal ou le gypaète barbu. Le loup est présent mais très difficile à observer."
+  species: ["Alpine ibex · Bouquetin", "Chamois", "Alpine marmot · Marmotte", "Golden eagle · Aigle royal", "Bearded vulture · Gypaète barbu"]
+  photos:
+    ibex: "https://www.mercantour-parcnational.fr/sites/mercantour-parcnational.fr/files/styles/slide_750x500/public/apidae/fete-et-manifestation/6924342/image/22846900-diaporama.jpg?itok=I4GDmiqE"
+    chamois: "https://upload.wikimedia.org/wikipedia/commons/d/d2/FL_mercantour3.jpg"
