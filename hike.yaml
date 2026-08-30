@@ -3,10 +3,10 @@ hike:
   dates: "Friday 04 September — Sunday 06 September 2026"
   start_date: "2026-09-04"
   end_date: "2026-09-06"
-  meet_time: "Friday · 07:00 from Antibes / Nice"
+  meet_time: "Friday · 12:00–13:00 from Antibes / Nice"
   description_en: "A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings."
   description_fr: "Une parenthèse de trois jours dans les paysages alpins et méditerranéens sauvages du Parc national du Mercantour : hautes vallées, crêtes minérales et soirées sous les étoiles."
-  travel: "Antibes / Nice → Mercantour trailhead: 2 h 30 drive, then we start hiking."
+  travel: "Antibes / Nice → Pont du Countet: leave by 12:00–13:00 at the latest, park the cars there, then the hike begins."
 
 weather:
   location: "Mercantour National Park"
@@ -47,7 +47,7 @@ route:
   duration: "3 days"
   highest_point: "2,688 m"
   difficulty: "Challenging multi-day hike"
-  description: "A demanding 28.3 km loop with 2,325 m ascent and descent: a steep climb to the 2,688 m high point on day one, a high alpine traverse on day two, and a long descent back to the trailhead on day three."
+  description: "A 28.3 km loop from Pont du Countet (1,684 m): Day 1 climbs to Refuge de Nice (2,223 m) for the first bivouac. Day 2 is the hard part — on to Refuge de Valmasque (2,225 m, a possible fallback overnight if the group is tired) and then Refuge des Merveilles (2,121 m) for the second bivouac. Day 3 descends back down to the cars at Pont du Countet."
   elevation_profile: [1684, 1740, 1840, 2010, 2190, 2380, 2560, 2688, 2500, 2320, 2100, 1880, 1684]
 
 wildlife:
