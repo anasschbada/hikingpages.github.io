@@ -16,7 +16,25 @@
 .orga .night-scene{max-width:640px;margin:0 auto 10px}
 .orga .scene-legend{max-width:640px;margin:0 auto}
 
-.night-scene{height:245px;background:linear-gradient(#082542 0%,#13455c 48%,#e7a66d 50%,#1a342b 51%);border-radius:14px;overflow:hidden;position:relative}.moon{position:absolute;right:25px;top:19px;color:#f9e6a5;font-size:42px;filter:drop-shadow(0 0 12px #ffe58a)}.mountain{position:absolute;bottom:34px;width:0;height:0;border-left:135px solid transparent;border-right:135px solid transparent;border-bottom:150px solid #163e3e}.m-a{left:12%;bottom:35px}.m-b{right:7%;bottom:35px;border-bottom-color:#0d2c2c;transform:scale(.78)}.road{position:absolute;bottom:0;width:100%;height:40px;background:#192724}.arrival-cars{position:absolute;bottom:25px;left:6%;display:flex;gap:13px}.tesla{display:block;position:relative;width:52px;height:19px;border-radius:11px 13px 5px 5px;background:#e8f3f2;color:transparent;animation:arrive 1s both;animation-delay:calc(var(--i)*.35s)}.tesla:before,.tesla:after{content:'';position:absolute;bottom:-5px;width:10px;height:10px;border-radius:50%;background:#0a1515}.tesla:before{left:7px}.tesla:after{right:7px}@keyframes arrive{from{transform:translateX(-180px);opacity:0}to{transform:translateX(0);opacity:1}}.hikers-climb{position:absolute;bottom:62px;left:36%;width:180px;height:140px}.hiker{position:absolute;color:var(--lime);font-size:15px;left:calc(var(--i) * 18px);bottom:calc(var(--i) * 14px);animation:hike 1.6s ease-in-out infinite;animation-delay:calc(var(--i)*.13s)}@keyframes hike{50%{transform:translate(5px,-7px)}}.camp-tents{position:absolute;right:13%;bottom:30px;display:flex;gap:6px;filter:drop-shadow(0 10px 6px #0008)}.tent{color:#ff8b5d;font-size:34px;line-height:.7}.scene-legend{display:flex;justify-content:space-around;font:10px 'DM Mono';padding:8px;color:#60716a}
+.night-scene{height:260px;background:linear-gradient(#082542 0%,#13455c 48%,#e7a66d 50%,#1a342b 51%);border-radius:14px;overflow:hidden;position:relative;display:flex;align-items:flex-end}.moon{position:absolute;right:25px;top:19px;color:#f9e6a5;font-size:42px;filter:drop-shadow(0 0 12px #ffe58a)}.mountain{position:absolute;bottom:34px;width:0;height:0;border-left:135px solid transparent;border-right:135px solid transparent;border-bottom:150px solid #163e3e}.m-a{left:12%;bottom:35px}.m-b{right:7%;bottom:35px;border-bottom-color:#0d2c2c;transform:scale(.78)}.road{position:absolute;bottom:0;width:100%;height:40px;background:#192724}
+/* Each zone is a wrapping flexbox so any headcount up to the slider's max stays fully inside the
+   scene, instead of the old fixed per-index left/bottom offsets that ran off the visible box. */
+.arrival-cars,.hikers-climb,.camp-tents{position:relative;z-index:2;flex:1;min-height:64px;display:flex;flex-wrap:wrap;align-items:flex-end;align-content:flex-end;gap:8px;padding:0 4% 26px}
+.arrival-cars{justify-content:flex-start}.hikers-climb{justify-content:center}.camp-tents{justify-content:flex-end;filter:drop-shadow(0 10px 6px #0008)}
+.tesla{flex:0 0 auto;display:block;position:relative;width:44px;height:17px;border-radius:10px 12px 4px 4px;background:#e8f3f2;color:transparent;animation:arrive .6s both;animation-delay:calc(var(--i)*.12s)}.tesla:before,.tesla:after{content:'';position:absolute;bottom:-5px;width:9px;height:9px;border-radius:50%;background:#0a1515}.tesla:before{left:6px}.tesla:after{right:6px}@keyframes arrive{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+.hiker{flex:0 0 auto;color:var(--lime);font-size:17px;animation:hike 1.4s ease-in-out infinite;animation-delay:calc(var(--i)*.09s)}@keyframes hike{50%{transform:translateY(-6px)}}
+.tent{flex:0 0 auto;color:#ff8b5d;font-size:26px;line-height:.7}
+.scene-legend{display:flex;justify-content:space-around;font:10px 'DM Mono';padding:8px;color:#60716a}
 
+nav{position:sticky;top:0;z-index:100}
+nav::before{content:'';position:absolute;top:0;bottom:0;left:50%;right:50%;margin-left:-50vw;margin-right:-50vw;z-index:-1;background:rgba(246,240,227,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:box-shadow .25s ease}
+nav.scrolled::before{box-shadow:0 8px 24px -14px #10222266}
+.primary,.ghost,.nav-cta{transition:transform .15s ease,box-shadow .15s ease}
+.primary:hover,.nav-cta:hover{transform:translateY(-2px)}
+.ghost:hover{transform:translateY(-1px)}
+:focus-visible{outline:3px solid var(--lime);outline-offset:2px;border-radius:4px}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in-view{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{transition:none;opacity:1;transform:none}}
 @media(max-width:760px){.forecast-days,.bilingual,.wildlife{grid-template-columns:1fr}.wildlife{padding:22px}.park-info{padding:60px 22px}.orga-settings{grid-template-columns:1fr}.orga-results{gap:30px}}
 @media print{nav,.hero-actions,.summit-card,.weather-icon,#route-map,.photo-gallery,.language,.orga-panel,.night-scene,.scene-legend{display:none!important}body{background:#fff;color:#000}.section,.route-section,.park-info,.orga{padding:20px 0;max-width:100%}.weather-card,.analysis,.wildlife{background:none!important;color:#000!important;box-shadow:none;border:1px solid #999}a[href]:after{content:" (" attr(href) ")";font-size:10px}}

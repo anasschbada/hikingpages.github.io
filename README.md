@@ -19,9 +19,9 @@ If a GPX file has fewer than two named waypoints, the page falls back to an even
 
 Weather is fetched live from [Open-Meteo](https://open-meteo.com) (no API key needed) using `weather.lat` / `weather.lon` in `hike.yaml` and the hike's `start_date`/`end_date`, and replaces the organiser's manual `weather:` block once it loads — that manual block is what's shown as a fallback while the live forecast loads, or if it's unreachable, or if the dates are too far out for Open-Meteo's ~16-day range.
 
-## Group logistics ("Orga" section)
+## Group logistics ("How many of us?" section)
 
-There's no RSVP or attendee list — instead, the "How many of us?" section near the bottom of the page is a plain client-side calculator: drag the slider to set a headcount, and it shows how many cars and tents that implies (based on the "car comfort mode" and "people per tent" settings next to it). Everything here is stored only in the visitor's own browser (`localStorage`), same as the settings used to be — there's no shared list, no signup, and nothing to configure or host.
+There's no RSVP or attendee list — instead, the "How many of us?" section near the bottom of the page is a plain client-side calculator: drag the slider (1–15 people) to set a headcount, and it shows how many cars and tents that implies (based on the "car comfort mode" and "people per tent" settings next to it), plus a small animated scene. Everything here is stored only in the visitor's own browser (`localStorage`), same as the settings used to be — there's no shared list, no signup, and nothing to configure or host. The slider is capped at 15 because the little car/hiker/tent icons are laid out in a fixed-size scene; past that the illustration gets crowded rather than because of any real logistics limit — raise `max` on `#party-size` in `index.html` if you need a bigger group (the icons wrap automatically, they just look better with fewer than ~20).
 
 ## Publish for free on GitHub Pages
 
@@ -49,16 +49,19 @@ Edit the hike dates, meeting time, and kit reminder in `hike.yaml` (or `DEFAULT_
 - The hiking-stage cards are read from the GPX track's own named waypoints (real refuges and parking, real distance/ascent/descent) instead of an arbitrary split — see "Editing the hike" above.
 - Replaced the RSVP/attendee-list system (and everything it needed — Supabase or MySQL, forms, dialogs) with a simple, backend-free group-logistics slider — see "Group logistics" above.
 - Publishes directly on GitHub Pages, taking advantage of this repo's `hikingpages.github.io` name — see "Publish for free on GitHub Pages" above.
-- **Full bilingual coverage**: the EN/FR toggle switches the nav, buttons, weather card, stats labels, and the Orga section, not just the about/wildlife text.
+- **Full bilingual coverage, actually complete this time**: the hike title, meeting time, travel note, route difficulty/description and weather condition were still English-only in French mode (single-language fields in `hike.yaml`) — they now have `_en`/`_fr` variants and `load()` picks the right one. Previously only the nav/buttons/labels were translated while a good chunk of body copy stayed in English.
+- **Fixed: the language toggle was invisible on mobile.** A leftover `@media(max-width:760px){.language{display:none}}` hid the only way to switch to French on any phone-sized screen — very likely why French "wasn't working" if tested on mobile. It's visible now, and the mobile nav no longer wraps text mid-word around it.
+- **Fixed: the group-logistics animation broke past a handful of people.** Cars/hikers/tents used to be positioned with a fixed per-index pixel offset that ran the icons outside their box once the headcount grew — they're now laid out in a wrapping flexbox that stays inside the scene at any count, and the slider is capped at 15 to keep the illustration readable.
+- **Removed the broken wildlife photos**: the two hot-linked images were failing to load; replaced with simple icon cards (🐐/🦌) that have no external dependency to break.
+- **Hardened the GPS map**: `L.map()` can end up with a stale size if it initialises before its container's final layout (a common Leaflet gotcha, worsened by the now-removed images that used to shift the layout after load) — it now calls `invalidateSize()` and re-fits the track shortly after creation as a safety net.
+- **Modernised the visual language**: a sticky nav with a blurred background and a shadow that appears once you scroll, sections that gently fade/slide into view on first scroll (with a fallback that reveals everything after 1.5s regardless, so the effect can never hide real content), lifted hover states on buttons, and visible focus rings for keyboard users.
 - **Add-to-calendar button**: downloads a `.ics` file built from the hike's dates.
 - **Share button**: uses the Web Share API on mobile, falls back to copying the link.
 - **Print stylesheet**: printing the page (e.g. for a paper copy at the trailhead with no signal) hides the nav, buttons, gallery, and interactive controls, and shows a clean brief.
 - Social link previews (Open Graph tags) and a mountain-emoji favicon, so the link looks right when shared in a group chat.
-- Gallery images use `loading="lazy"`.
 
 ## Further ideas (site)
 
-- **Self-hosted gallery images**: the wildlife photos are still hot-linked from external sites (an attempt to fetch and commit local copies in this pass was blocked by this session's sandboxed network); hosting your own resized copies would be more reliable, faster, and immune to the source site changing or removing them.
 - **Offline / low-signal support**: a service worker caching the page shell, `hike.yaml`, and the GPX file so the brief still opens with no signal at the trailhead (the print stylesheet covers the "on paper" case, this would cover "on the phone, no bars").
 - **Units toggle**: km/miles and °C/°F, for a mixed-nationality group.
 - **Zoomable/pannable elevation chart**: the hand-rolled SVG profile is lightweight but fixed-scale; a small charting lib (or hand-written pan/zoom) would let hikers inspect specific sections of a longer route.
