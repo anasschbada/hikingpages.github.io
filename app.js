@@ -1,15 +1,123 @@
 const $=s=>document.querySelector(s),all=s=>document.querySelectorAll(s),people=JSON.parse(localStorage.getItem('trail-brief-attendees')||'[]');let settings=JSON.parse(localStorage.getItem('trail-brief-settings')||'{"mode":"comfort","tent":2}');
+
+// Fill these in after creating a free project at supabase.com to share the RSVP list across every visitor
+// instead of storing it only in each visitor's own browser. See README.md "Shared RSVP storage" for setup.
+const SUPABASE_URL='';
+const SUPABASE_ANON_KEY='';
+const supabase=(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+
 let language='en';const experienceStyle=document.createElement('style');experienceStyle.textContent='.language{border:1px solid #9f998e;background:transparent;border-radius:99px;padding:7px 9px;font:700 11px Outfit;cursor:pointer}.photo-gallery{max-width:1180px;margin:0 auto 90px;padding:0 26px;display:grid;grid-template-columns:1fr 1fr;gap:18px}.photo-gallery figure{margin:0;border-radius:15px;overflow:hidden;position:relative;height:290px;background:#183e3a}.photo-gallery img{width:100%;height:100%;object-fit:cover}.photo-gallery figcaption{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,#001b19);padding:32px 16px 13px;color:#fff;font:600 14px Outfit}.map-stages{max-width:1180px;margin:0 auto 70px;padding:0 26px;display:grid;grid-template-columns:1.2fr .8fr;gap:30px}.map-stages h2{font-size:42px;margin:0 0 20px}.map-stages h2 em{font-family:Georgia,serif;font-weight:400}#route-map{height:380px;border-radius:14px;overflow:hidden;background:#d5e6d1;display:grid;place-items:center;font:12px \'DM Mono\'}#route-stages{display:grid;gap:9px}.map-stages article{background:#fffaf0;border-radius:10px;padding:15px}.map-stages article span{color:#ff5b35;font:11px \'DM Mono\'}.map-stages article h3{margin:8px 0 4px;font-size:17px}.map-stages article p{margin:0;font-size:12px;color:#62716b}@media(max-width:760px){.language{display:none}.photo-gallery,.map-stages{grid-template-columns:1fr}.photo-gallery{margin-bottom:55px}.photo-gallery figure{height:220px}.map-stages{padding:0 22px}#route-map{height:300px}}';document.head.append(experienceStyle);
-const polish=document.createElement('style');polish.textContent='#profile-marker{stroke:#ff5b35;stroke-width:2;stroke-dasharray:4 4;pointer-events:none}.verified{font:10px \'DM Mono\';border:1px solid #be4029;border-radius:99px;padding:7px 9px}.outdooractive-link{background:#fffaf0;border:1px solid #d3c8b6;border-radius:99px;padding:12px 15px;color:#103b38;font:700 12px Outfit;text-decoration:none}.join .who-button{background:#fff9ef;border:0;box-shadow:0 8px 0 #c87350;transform:translateY(-4px);padding:16px 23px}.join .who-button:hover{transform:translateY(0);box-shadow:0 3px 0 #c87350}';document.head.append(polish);
+const polish=document.createElement('style');polish.textContent='#profile-marker{stroke:#ff5b35;stroke-width:2;stroke-dasharray:4 4;pointer-events:none}.verified{font:10px \'DM Mono\';border:1px solid #be4029;border-radius:99px;padding:7px 9px}.outdooractive-link{background:#fffaf0;border:1px solid #d3c8b6;border-radius:99px;padding:12px 15px;color:#103b38;font:700 12px Outfit;text-decoration:none}.join .who-button{background:#fff9ef;border:0;box-shadow:0 8px 0 #c87350;transform:translateY(-4px);padding:16px 23px}.join .who-button:hover{transform:translateY(0);box-shadow:0 3px 0 #c87350}.org-hero{position:relative}.org-hero .small-btn{position:absolute;right:14px;top:14px}';document.head.append(polish);
 const motion=document.createElement('style');motion.textContent='.hiker{font-size:17px!important;animation:trek 5s linear infinite!important}.hiker.downhill{animation-name:trekdown!important}@keyframes trek{0%,100%{transform:translate(-20px,25px)}50%{transform:translate(70px,-65px)}}@keyframes trekdown{0%,100%{transform:translate(70px,-65px) scaleX(-1)}50%{transform:translate(-20px,25px) scaleX(-1)}}';document.head.append(motion);
-function injectExperience(){document.querySelector('nav').insertAdjacentHTML('beforeend','<button class="language" id="language">FR</button>');$('#language').onclick=()=>{language=language==='en'?'fr':'en';$('#language').textContent=language==='en'?'FR':'EN';$('#hike-description').textContent=language==='en'?'A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings.':'Une parenthèse de trois jours dans les paysages alpins et méditerranéens sauvages du Parc national du Mercantour : hautes vallées, crêtes minérales et soirées sous les étoiles.';$('#about-en').hidden=language==='fr';$('#about-fr').hidden=language==='en';$('#wildlife-en').hidden=language==='fr';$('#wildlife-fr').hidden=language==='en'};document.querySelector('.wildlife').insertAdjacentHTML('afterend','<section class="photo-gallery"><figure><img src="https://www.mercantour-parcnational.fr/sites/mercantour-parcnational.fr/files/styles/slide_750x500/public/apidae/fete-et-manifestation/6924342/image/22846900-diaporama.jpg?itok=I4GDmiqE" alt="Alpine ibex in Mercantour"><figcaption>Alpine ibex · Bouquetin des Alpes</figcaption></figure><figure><img src="https://upload.wikimedia.org/wikipedia/commons/d/d2/FL_mercantour3.jpg" alt="Chamois in Mercantour"><figcaption>Chamois on the high slopes</figcaption></figure></section>');let panel=document.createElement('section');panel.className='map-stages';panel.innerHTML='<div><p class="eyebrow">GPS ROUTE MAP</p><h2>Follow the<br><em>real track.</em></h2><div id="route-map"><p>Loading GPX route…</p></div></div><div><p class="eyebrow">HIKING STAGES</p><div id="route-stages"></div></div>';$('#route').after(panel);let l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(l);let s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.onload=loadTrack;document.head.append(s)}
+function injectExperience(){document.querySelector('nav').insertAdjacentHTML('beforeend','<button class="language" id="language">FR</button>');$('#language').onclick=()=>{language=language==='en'?'fr':'en';document.documentElement.lang=language;$('#language').textContent=language==='en'?'FR':'EN';$('#hike-description').textContent=language==='en'?'A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings.':'Une parenthèse de trois jours dans les paysages alpins et méditerranéens sauvages du Parc national du Mercantour : hautes vallées, crêtes minérales et soirées sous les étoiles.';$('#about-en').hidden=language==='fr';$('#about-fr').hidden=language==='en';$('#wildlife-en').hidden=language==='fr';$('#wildlife-fr').hidden=language==='en'};document.querySelector('.wildlife').insertAdjacentHTML('afterend','<section class="photo-gallery"><figure><img loading="lazy" src="https://www.mercantour-parcnational.fr/sites/mercantour-parcnational.fr/files/styles/slide_750x500/public/apidae/fete-et-manifestation/6924342/image/22846900-diaporama.jpg?itok=I4GDmiqE" alt="Alpine ibex in Mercantour"><figcaption>Alpine ibex · Bouquetin des Alpes</figcaption></figure><figure><img loading="lazy" src="https://upload.wikimedia.org/wikipedia/commons/d/d2/FL_mercantour3.jpg" alt="Chamois in Mercantour"><figcaption>Chamois on the high slopes</figcaption></figure></section>');let panel=document.createElement('section');panel.className='map-stages';panel.innerHTML='<div><p class="eyebrow">GPS ROUTE MAP</p><h2>Follow the<br><em>real track.</em></h2><div id="route-map"><p>Loading GPX route…</p></div></div><div><p class="eyebrow">HIKING STAGES</p><div id="route-stages"></div></div>';$('#route').after(panel);let l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.append(l);let s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.onload=loadTrack;document.head.append(s)}
 async function loadTrack(){try{let xml=await(await fetch('./mercantour-route.gpx')).text(),d=new DOMParser().parseFromString(xml,'application/xml'),p=[...d.querySelectorAll('trkpt')].map(x=>({lat:+x.getAttribute('lat'),lng:+x.getAttribute('lon'),ele:+x.querySelector('ele').textContent}));draw(p.map(x=>x.ele));const svg=$('#profile'),marker=$('#profile-marker');svg.onpointermove=e=>{let r=svg.getBoundingClientRect(),x=Math.max(0,Math.min(760,(e.clientX-r.left)/r.width*760));marker.setAttribute('x1',x);marker.setAttribute('x2',x);let pt=p[Math.round(x/760*(p.length-1))];$('#profile-range').textContent=`${Math.round(pt.ele)} m · move along the real GPX track`};svg.onpointerleave=()=>{marker.setAttribute('x1',-5);marker.setAttribute('x2',-5)};let map=L.map('route-map').fitBounds(p.map(x=>[x.lat,x.lng]));L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);L.polyline(p.map(x=>[x.lat,x.lng]),{color:'#ff5b35',weight:4}).addTo(map);let groups=[0,.25,.5,.75,1],cards=[];for(let i=0;i<4;i++){let a=p[Math.floor(groups[i]*(p.length-1))],b=p[Math.floor(groups[i+1]*(p.length-1))],up=0,km=0;for(let j=Math.floor(groups[i]*(p.length-1))+1;j<=Math.floor(groups[i+1]*(p.length-1));j++){let q=p[j-1],r=p[j],dx=111320*Math.cos(q.lat*Math.PI/180)*(r.lng-q.lng),dy=110540*(r.lat-q.lat);km+=Math.hypot(dx,dy)/1000;if(r.ele>q.ele)up+=r.ele-q.ele}cards.push(`<article><span>0${i+1}</span><h3>${b.ele>a.ele?'Climb':'Descent'} · ${km.toFixed(1)} km</h3><p>${Math.round(a.ele)} m → ${Math.round(b.ele)} m · +${Math.round(up)} m ascent</p></article>`)}$('#route-stages').innerHTML=cards.join('')}catch(e){$('#route-map').innerHTML='<p>Publish on GitHub Pages to load the interactive local GPX map.</p>'}}
 injectExperience();
+
 const val=(id,x)=>{if(x!==undefined&&x!==null)$(id).textContent=x}, close=id=>$('#'+id).close(), cap=()=>settings.mode==='comfort'?4:5, cars=()=>Math.ceil(people.length/cap()),tents=()=>Math.ceil(people.length/settings.tent);
 function draw(v){if(!v?.length)return;let mi=Math.min(...v),ma=Math.max(...v),r=ma-mi||1,w=760,h=210,p=10,c=v.map((x,i)=>`${p+i*(w-2*p)/(v.length-1)},${h-p-(x-mi)/r*(h-2*p)}`);$('#profile-line').setAttribute('d','M '+c.join(' L '));$('#profile-fill').setAttribute('d',`M ${p},${h} L ${c.join(' L ')} L ${w-p},${h} Z`);val('#profile-range',`${Math.round(mi)}–${Math.round(ma)} m elevation`)}
 function scene(){let n=people.length;$('#top-attendee-count').textContent=n;$('#attendee-count').textContent=n;val('#org-headcount',n);$('#arrival-cars').innerHTML=Array.from({length:cars()},(_,i)=>`<span class="tesla" style="--i:${i}">▰</span>`).join('');$('#hikers-climb').innerHTML=Array.from({length:n},(_,i)=>`<span class="hiker ${i%2?'downhill':'uphill'}" style="--i:${i}">🚶</span>`).join('');$('#camp-tents').innerHTML=Array.from({length:tents()},(_,i)=>`<span class="tent" style="--i:${i}">▲</span>`).join('')}
 function dashboard(){scene();$('#attendee-list').innerHTML=people.length?people.map((p,i)=>`<div><b><span class="avatar">${String(i+1).padStart(2,'0')}</span>${p.name}</b><span>confirmed</span></div>`).join(''):'<p>No one has joined yet.</p>';$('#attendees-dialog').showModal()}
-function weatherDays(days=[]){$('#forecast-days').innerHTML=days.map(d=>`<div><b>${d.day}</b><span>☀ ${d.high} / ${d.low}</span><small>${d.rain} · ${d.wind}</small></div>`).join('')}
+function weatherDays(days=[]){$('#forecast-days').innerHTML=days.map(d=>`<div><b>${d.day}</b><span>${d.icon||'☀'} ${d.high} / ${d.low}</span><small>${d.rain} · ${d.wind}</small></div>`).join('')}
 function load(data){let h=data.hike||{},w=data.weather||{},r=data.route||{},z=data.wildlife||{};val('#hike-dates',h.dates);val('#hike-title',h.title);val('#hike-description',h.description_en);val('#travel',h.travel);val('#fact-meet',h.meet_time);val('#weather-location',w.location);val('#weather-date',w.updated);$('#temperature').innerHTML=`${w.temperature??'—'}<sup>°C</sup>`;val('#condition',w.condition);val('#feels',`Night lows ${w.feels_like??'—'}°`);val('#weather-icon',w.icon);val('#rain',w.rain);val('#wind',w.wind);val('#humidity',w.humidity);val('#uv',w.uv);weatherDays(w.days);val('#fact-distance',r.distance);val('#fact-gain',r.ascent);val('#fact-duration',r.duration);val('#hero-highest',r.highest_point);val('#difficulty',r.difficulty);val('#route-summary',r.description);$('#stats').innerHTML=`<div><b>${r.distance||'—'}</b><span>Distance</span></div><div><b>${r.ascent||'—'}</b><span>Ascent</span></div><div><b>${r.highest_point||'—'}</b><span>High point</span></div><div><b>${r.duration||'—'}</b><span>Moving time</span></div>`;draw(r.elevation_profile);val('#about-en',h.description_en);val('#about-fr',h.description_fr);val('#wildlife-title',z.title);val('#wildlife-en',z.description_en);val('#wildlife-fr',z.description_fr);$('#species').innerHTML=(z.species||[]).map(x=>`<span>◌ ${x}</span>`).join('')}
-$('#settings-button').onclick=()=>{$('#comfort-mode').value=settings.mode;$('#tent-capacity').value=settings.tent;$('#settings-dialog').showModal()};$('#save-settings').onclick=e=>{e.preventDefault();settings={mode:$('#comfort-mode').value,tent:+$('#tent-capacity').value||2};localStorage.setItem('trail-brief-settings',JSON.stringify(settings));close('settings-dialog');scene()};
-$('#join-button').onclick=()=>$('#rsvp-dialog').showModal();$('#who-button').onclick=dashboard;$('#top-who-button').onclick=dashboard;$('#submit-rsvp').onclick=e=>{e.preventDefault();let n=$('#rsvp-name');if(!n.reportValidity()||!$('#accept-terms').checked)return;people.push({name:n.value.trim()});localStorage.setItem('trail-brief-attendees',JSON.stringify(people));close('rsvp-dialog');$('#rsvp-dialog form').reset();scene()};all('[data-close]').forEach(b=>b.onclick=()=>close(b.dataset.close));all('[data-scroll]').forEach(b=>b.onclick=()=>$(b.dataset.scroll).scrollIntoView({behavior:'smooth'}));scene();draw([1684,1740,1840,2010,2190,2380,2560,2688,2500,2320,2100,1880,1684]);load({hike:{title:'Mercantour: mountain weekend',dates:'Friday 04 September — Sunday 06 September 2026',meet_time:'Friday · 07:00 from Antibes / Nice',travel:'Antibes / Nice → Mercantour trailhead: 2 h 30 drive, then we start hiking.',description_en:'A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings.',description_fr:'Une parenthèse de trois jours dans des paysages alpins et méditerranéens sauvages : hautes vallées, crêtes minérales et soirées sous les étoiles.'},weather:{location:'Mercantour National Park',updated:'Forecast · 04–06 September 2026',temperature:'22–23',feels_like:'16–17',condition:'Sunny, dry and light wind',icon:'☀️',rain:'0.0 mm',wind:'5–7 km/h',humidity:'Low',uv:'High',days:[{day:'Fri 04 Sep',high:'22°C',low:'16°C',rain:'0.0 mm',wind:'6 km/h'},{day:'Sat 05 Sep',high:'23°C',low:'17°C',rain:'0.0 mm · 5%',wind:'7 km/h'},{day:'Sun 06 Sep',high:'22°C',low:'17°C',rain:'0.0 mm · 17%',wind:'5 km/h'}]},route:{distance:'28.3 km',ascent:'2,325 m',duration:'3 days',highest_point:'2,688 m',difficulty:'Challenging multi-day hike',description:'A demanding 28.3 km GPX route with 2,325 m ascent and descent. Expect sustained climbing, high-altitude exposure and changing mountain conditions.',elevation_profile:[1684,1740,1840,2010,2190,2380,2560,2688,2500,2320,2100,1880,1684]},wildlife:{title:'Wildlife to watch for · Faune à observer',description_en:'Walk quietly and give wildlife space. You may spot ibex, chamois and marmots; scan the sky for golden eagles.',description_fr:'Marchez discrètement et gardez vos distances. Vous pourrez apercevoir bouquetins, chamois et marmottes.',species:['Alpine ibex · Bouquetin','Chamois','Alpine marmot · Marmotte','Golden eagle · Aigle royal','Bearded vulture · Gypaète barbu']}});
+
+const WMO_ICONS={0:['☀️','Clear sky'],1:['🌤️','Mainly clear'],2:['⛅','Partly cloudy'],3:['☁️','Overcast'],45:['🌫️','Fog'],48:['🌫️','Fog'],51:['🌦️','Light drizzle'],53:['🌦️','Drizzle'],55:['🌧️','Dense drizzle'],61:['🌦️','Light rain'],63:['🌧️','Rain'],65:['🌧️','Heavy rain'],71:['🌨️','Light snow'],73:['🌨️','Snow'],75:['❄️','Heavy snow'],80:['🌦️','Rain showers'],81:['🌧️','Rain showers'],82:['⛈️','Violent showers'],95:['⛈️','Thunderstorm'],96:['⛈️','Thunderstorm, hail'],99:['⛈️','Severe thunderstorm']};
+async function fetchLiveWeather(hike){
+  const lat=hike?.weather?.lat,lon=hike?.weather?.lon,start=hike?.hike?.start_date,end=hike?.hike?.end_date;
+  if(!lat||!lon||!start||!end)return;
+  try{
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,uv_index_max&timezone=auto&start_date=${start}&end_date=${end}`;
+    const res=await fetch(url);
+    if(!res.ok)throw new Error('Open-Meteo request failed');
+    const d=(await res.json()).daily;
+    if(!d?.time?.length)throw new Error('Open-Meteo returned no data for these dates');
+    const days=d.time.map((date,i)=>{const[icon,label]=WMO_ICONS[d.weathercode[i]]||['⛅','Mixed conditions'];return{day:new Date(`${date}T00:00:00`).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}),high:`${Math.round(d.temperature_2m_max[i])}°C`,low:`${Math.round(d.temperature_2m_min[i])}°C`,rain:`${d.precipitation_sum[i].toFixed(1)} mm`,wind:`${Math.round(d.windspeed_10m_max[i])} km/h`,icon}});
+    val('#weather-date',`Live forecast · ${hike.hike?.dates||''}`);
+    $('#temperature').innerHTML=`${Math.round(Math.min(...d.temperature_2m_min))}–${Math.round(Math.max(...d.temperature_2m_max))}<sup>°C</sup>`;
+    val('#condition',(WMO_ICONS[d.weathercode[0]]||['','Mixed conditions'])[1]);
+    val('#feels',`Night lows ${Math.round(Math.min(...d.temperature_2m_min))}°`);
+    val('#weather-icon',days[0].icon);
+    val('#rain',`${Math.max(...d.precipitation_sum).toFixed(1)} mm`);
+    val('#wind',`${Math.round(Math.max(...d.windspeed_10m_max))} km/h`);
+    val('#uv',Math.max(...d.uv_index_max)>=6?'High':'Moderate');
+    weatherDays(days);
+    const badge=document.querySelector('.verified');if(badge)badge.textContent='Live · Open-Meteo';
+  }catch(e){console.warn('Live weather unavailable, showing the organiser briefing instead',e)}
+}
+
+async function loadHikeData(defaults){
+  try{
+    const text=await(await fetch('./hike.yaml')).text();
+    const parsed=jsyaml.load(text);
+    if(!parsed)throw new Error('hike.yaml is empty');
+    load(parsed);
+    fetchLiveWeather(parsed);
+  }catch(e){
+    console.warn('hike.yaml not found next to this page, using the built-in defaults',e);
+    fetchLiveWeather(defaults);
+  }
+}
+
+async function fetchAttendees(){
+  if(!supabase)return JSON.parse(localStorage.getItem('trail-brief-attendees')||'[]');
+  try{
+    const{data,error}=await supabase.from('rsvps').select('name').order('created_at',{ascending:true});
+    if(error)throw error;
+    return data.map(r=>({name:r.name}));
+  }catch(e){
+    console.warn('Supabase unavailable, showing the locally cached attendee list',e);
+    return JSON.parse(localStorage.getItem('trail-brief-attendees')||'[]');
+  }
+}
+function subscribeAttendees(){
+  if(!supabase)return;
+  supabase.channel('rsvps-changes').on('postgres_changes',{event:'INSERT',schema:'public',table:'rsvps'},async()=>{
+    people.splice(0,people.length,...(await fetchAttendees()));
+    localStorage.setItem('trail-brief-attendees',JSON.stringify(people));
+    scene();
+    if($('#attendees-dialog').open)dashboard();
+  }).subscribe();
+}
+async function initAttendees(){
+  people.splice(0,people.length,...(await fetchAttendees()));
+  localStorage.setItem('trail-brief-attendees',JSON.stringify(people));
+  scene();
+  subscribeAttendees();
+}
+
+$('#settings-button').onclick=()=>{$('#comfort-mode').value=settings.mode;$('#tent-capacity').value=settings.tent;$('#settings-dialog').showModal();$('#comfort-mode').focus()};$('#save-settings').onclick=e=>{e.preventDefault();settings={mode:$('#comfort-mode').value,tent:+$('#tent-capacity').value||2};localStorage.setItem('trail-brief-settings',JSON.stringify(settings));close('settings-dialog');scene()};
+$('#join-button').onclick=()=>{$('#rsvp-dialog').showModal();$('#rsvp-name').focus()};$('#who-button').onclick=dashboard;$('#top-who-button').onclick=dashboard;
+$('#submit-rsvp').onclick=async e=>{
+  e.preventDefault();
+  const nameInput=$('#rsvp-name');
+  if(!nameInput.reportValidity()||!$('#accept-terms').checked)return;
+  const name=nameInput.value.trim(),btn=$('#submit-rsvp'),original=btn.innerHTML;
+  btn.disabled=true;btn.textContent='Saving…';
+  try{
+    if(supabase){
+      const{error}=await supabase.from('rsvps').insert({name});
+      if(error)throw error;
+      people.splice(0,people.length,...(await fetchAttendees()));
+    }else{
+      people.push({name});
+    }
+    localStorage.setItem('trail-brief-attendees',JSON.stringify(people));
+    close('rsvp-dialog');$('#rsvp-dialog form').reset();scene();
+  }catch(err){
+    console.error(err);
+    alert('Could not save your RSVP — check your connection and try again.');
+  }finally{
+    btn.disabled=false;btn.innerHTML=original;
+  }
+};
+$('#export-csv').onclick=()=>{
+  const rows=['name',...people.map(p=>p.name)].map(n=>`"${String(n).replace(/"/g,'""')}"`);
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mercantour-attendees.csv';a.click();URL.revokeObjectURL(a.href);
+};
+all('[data-close]').forEach(b=>b.onclick=()=>close(b.dataset.close));all('[data-scroll]').forEach(b=>b.onclick=()=>$(b.dataset.scroll).scrollIntoView({behavior:'smooth'}));
+
+const DEFAULT_DATA={hike:{title:'Mercantour: mountain weekend',dates:'Friday 04 September — Sunday 06 September 2026',start_date:'2026-09-04',end_date:'2026-09-06',meet_time:'Friday · 07:00 from Antibes / Nice',travel:'Antibes / Nice → Mercantour trailhead: 2 h 30 drive, then we start hiking.',description_en:'A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings.',description_fr:'Une parenthèse de trois jours dans des paysages alpins et méditerranéens sauvages : hautes vallées, crêtes minérales et soirées sous les étoiles.'},weather:{location:'Mercantour National Park',lat:44.074149,lon:7.401073,updated:'Forecast · 04–06 September 2026',temperature:'22–23',feels_like:'16–17',condition:'Sunny, dry and light wind',icon:'☀️',rain:'0.0 mm',wind:'5–7 km/h',humidity:'Low',uv:'High',days:[{day:'Fri 04 Sep',high:'22°C',low:'16°C',rain:'0.0 mm',wind:'6 km/h'},{day:'Sat 05 Sep',high:'23°C',low:'17°C',rain:'0.0 mm · 5%',wind:'7 km/h'},{day:'Sun 06 Sep',high:'22°C',low:'17°C',rain:'0.0 mm · 17%',wind:'5 km/h'}]},route:{distance:'28.3 km',ascent:'2,325 m',duration:'3 days',highest_point:'2,688 m',difficulty:'Challenging multi-day hike',description:'A demanding 28.3 km GPX route with 2,325 m ascent and descent. Expect sustained climbing, high-altitude exposure and changing mountain conditions.',elevation_profile:[1684,1740,1840,2010,2190,2380,2560,2688,2500,2320,2100,1880,1684]},wildlife:{title:'Wildlife to watch for · Faune à observer',description_en:'Walk quietly and give wildlife space. You may spot ibex, chamois and marmots; scan the sky for golden eagles.',description_fr:'Marchez discrètement et gardez vos distances. Vous pourrez apercevoir bouquetins, chamois et marmottes.',species:['Alpine ibex · Bouquetin','Chamois','Alpine marmot · Marmotte','Golden eagle · Aigle royal','Bearded vulture · Gypaète barbu']}};
+
+load(DEFAULT_DATA);
+loadHikeData(DEFAULT_DATA);
+initAttendees();

@@ -1,6 +1,8 @@
 hike:
   title: "Mercantour: mountain weekend"
   dates: "Friday 04 September — Sunday 06 September 2026"
+  start_date: "2026-09-04"
+  end_date: "2026-09-06"
   meet_time: "Friday · 07:00 from Antibes / Nice"
   description_en: "A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings."
   description_fr: "Une parenthèse de trois jours dans les paysages alpins et méditerranéens sauvages du Parc national du Mercantour : hautes vallées, crêtes minérales et soirées sous les étoiles."
@@ -8,6 +10,8 @@ hike:
 
 weather:
   location: "Mercantour National Park"
+  lat: 44.074149
+  lon: 7.401073
   updated: "Forecast · 04–06 September 2026"
   temperature: "22–23"
   feels_like: "16–17"
