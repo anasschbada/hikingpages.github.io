@@ -1,15 +1,11 @@
 hike:
-  title_en: "Mercantour: mountain weekend"
-  title_fr: "Mercantour : week-end en montagne"
+  title: "Mercantour: mountain weekend"
   dates: "Friday 04 September — Sunday 06 September 2026"
   start_date: "2026-09-04"
   end_date: "2026-09-06"
-  meet_time_en: "Friday · 12:00–13:00 from Antibes / Nice"
-  meet_time_fr: "Vendredi · 12h00–13h00 depuis Antibes / Nice"
-  description_en: "A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings."
-  description_fr: "Une parenthèse de trois jours dans les paysages alpins et méditerranéens sauvages du Parc national du Mercantour : hautes vallées, crêtes minérales et soirées sous les étoiles."
-  travel_en: "Antibes / Nice → Pont du Countet: leave by 12:00–13:00 at the latest, park the cars there, then the hike begins."
-  travel_fr: "Antibes / Nice → Pont du Countet : départ 12h00–13h00 au plus tard, on gare les voitures sur place, puis la randonnée commence."
+  meet_time: "Friday · 12:00–13:00 from Antibes / Nice"
+  description: "A three-day escape into the wild alpine–Mediterranean landscapes of Mercantour National Park: high valleys, mineral ridges and starry camp evenings."
+  travel: "Antibes / Nice → Pont du Countet: leave by 12:00–13:00 at the latest, park the cars there, then the hike begins."
 
 weather:
   location: "Mercantour National Park"
@@ -18,8 +14,7 @@ weather:
   updated: "Forecast · 04–06 September 2026"
   temperature: "22–23"
   feels_like: "16–17"
-  condition_en: "Sunny, dry and light wind"
-  condition_fr: "Ensoleillé, sec et vent léger"
+  condition: "Sunny, dry and light wind"
   icon: "☀️"
   rain: "0.0 mm"
   wind: "5–7 km/h"
@@ -50,14 +45,11 @@ route:
   max_grade: "Steep alpine terrain"
   duration: "3 days"
   highest_point: "2,688 m"
-  difficulty_en: "Challenging multi-day hike"
-  difficulty_fr: "Randonnée exigeante sur plusieurs jours"
-  description_en: "A 28.3 km loop from Pont du Countet (1,684 m): Day 1 climbs to Refuge de Nice (2,223 m) for the first bivouac. Day 2 is the hard part — on to Refuge de Valmasque (2,225 m, a possible fallback overnight if the group is tired) and then Refuge des Merveilles (2,121 m) for the second bivouac. Day 3 descends back down to the cars at Pont du Countet."
-  description_fr: "Une boucle de 28,3 km depuis le Pont du Countet (1 684 m) : le jour 1 monte jusqu’au Refuge de Nice (2 223 m) pour le premier bivouac. Le jour 2 est la partie difficile — direction le Refuge de Valmasque (2 225 m, un possible bivouac de repli si le groupe est fatigué) puis le Refuge des Merveilles (2 121 m) pour la deuxième nuit. Le jour 3 redescend jusqu’aux voitures au Pont du Countet."
+  difficulty: "Challenging multi-day hike"
+  description: "A 28.3 km loop from Pont du Countet (1,684 m): Day 1 climbs to Refuge de Nice (2,223 m) for the first bivouac. Day 2 is the hard part — on to Refuge de Valmasque (2,225 m, a possible fallback overnight if the group is tired) and then Refuge des Merveilles (2,121 m) for the second bivouac. Day 3 descends back down to the cars at Pont du Countet."
   elevation_profile: [1684, 1740, 1840, 2010, 2190, 2380, 2560, 2688, 2500, 2320, 2100, 1880, 1684]
 
 wildlife:
-  title: "Wildlife to watch for · Faune à observer"
-  description_en: "Walk quietly and give wildlife space. You may spot Alpine ibex, chamois and marmots; scan the sky for golden eagles or bearded vultures. Wolves are present but exceptionally elusive."
-  description_fr: "Marchez discrètement et gardez vos distances. Vous pourrez apercevoir bouquetins, chamois et marmottes ; levez les yeux pour l’aigle royal ou le gypaète barbu. Le loup est présent mais très difficile à observer."
-  species: ["Alpine ibex · Bouquetin", "Chamois", "Alpine marmot · Marmotte", "Golden eagle · Aigle royal", "Bearded vulture · Gypaète barbu"]
+  title: "Wildlife to watch for"
+  description: "Walk quietly and give wildlife space. You may spot Alpine ibex, chamois and marmots; scan the sky for golden eagles or bearded vultures. Wolves are present but exceptionally elusive."
+  species: ["Alpine ibex", "Chamois", "Alpine marmot", "Golden eagle", "Bearded vulture"]
