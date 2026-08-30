@@ -12,51 +12,38 @@ The three "hiking stages" cards are computed directly from that GPX track rather
 
 Weather is fetched live from [Open-Meteo](https://open-meteo.com) (no API key needed) using `weather.lat` / `weather.lon` in `hike.yaml` and the hike's `start_date`/`end_date`, and replaces the organiser's manual `weather:` block once it loads — that manual block is what's shown as a fallback while the live forecast loads, or if it's unreachable, or if the dates are too far out for Open-Meteo's ~16-day range.
 
-## Shared RSVP storage (Supabase)
+## Shared RSVP storage (MySQL 8.4)
 
-By default the RSVP list is stored only in each visitor's own browser (`localStorage`), so nobody sees a shared attendee count. `app.js` can instead store RSVPs in a small free [Supabase](https://supabase.com) project, so every visitor sees the same list — with the local-browser storage kept automatically as an offline fallback if Supabase isn't configured or is unreachable.
+By default the RSVP list is stored only in each visitor's own browser (`localStorage`), so nobody sees a shared attendee count. This branch stores RSVPs in a MySQL 8.4 database instead, through a small PHP API (`api/rsvp.php`) — with the local-browser storage kept automatically as an offline fallback if that API isn't configured or is unreachable.
 
-To turn it on:
+**GitLab Pages only serves static files — it cannot run PHP or talk to a database.** `api/rsvp.php` needs to be deployed on a separate PHP 8+ host that can reach your MySQL 8.4 server (for example your existing OVH hosting, which already runs PHP + MySQL for WordPress). The GitLab-hosted page then calls that API's public URL over HTTPS.
 
-1. Create a free project at [supabase.com](https://supabase.com).
-2. In the Supabase dashboard, open **SQL Editor** and run:
-   ```sql
-   create table rsvps (
-     id uuid primary key default gen_random_uuid(),
-     name text not null,
-     created_at timestamptz not null default now()
-   );
-   alter table rsvps enable row level security;
-   create policy "Anyone can read rsvps" on rsvps for select using (true);
-   create policy "Anyone can add an rsvp" on rsvps for insert with check (true);
+To set it up:
+
+1. Create a MySQL 8.4 database (or reuse an existing one) and run `api/schema.sql` against it:
    ```
-   This intentionally leaves out `update`/`delete` policies, so once submitted, an RSVP can't be edited or removed by a visitor from the page itself.
-3. Open **Project Settings → API**, copy the **Project URL** and the **anon public** key.
-4. In `app.js`, fill in `SUPABASE_URL` and `SUPABASE_ANON_KEY` near the top of the file with those two values.
-5. Re-publish (on GitHub Pages, just push the updated `app.js`; for the WordPress embed, regenerate `wordpress-embed.html` — see below — and re-paste it).
-
-Anyone with the page link can see the full attendee list, same as the current "Who's in" dashboard already shows to any visitor — the anon key is safe to expose client-side, it can only do what the two policies above allow. Do not put anything more sensitive than a name in this table. Do not treat the acknowledgement text as legal advice; have a local professional review it for organised commercial events.
-
-## Organiser edit panel (optional)
-
-With the Supabase table above already set up, you can also let the organiser edit the hike's title, dates, meeting time, weather location, and route stats directly from the page, instead of hand-editing `hike.yaml`:
-
-1. In the same Supabase project, run:
-   ```sql
-   create table hike_data (
-     id int primary key,
-     data jsonb not null
-   );
-   alter table hike_data enable row level security;
-   create policy "Anyone can read hike_data" on hike_data for select using (true);
-   create policy "Anyone can write hike_data" on hike_data for insert with check (true);
-   create policy "Anyone can update hike_data" on hike_data for update using (true);
+   mysql -u youruser -p your_database < api/schema.sql
    ```
-2. Pick a passphrase and get its SHA-256 hex, e.g. in a browser console: `crypto.subtle.digest('SHA-256',new TextEncoder().encode('your passphrase')).then(b=>console.log([...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')))`.
-3. Paste that hex string into `ADMIN_PASSPHRASE_HASH` near the top of `app.js`.
-4. Re-publish. A small ✎ button appears in the nav; entering the passphrase there opens a form that saves straight to `hike_data` in Supabase, which every visitor's page then reads first (before falling back to `hike.yaml`, then to `DEFAULT_DATA`).
+2. Upload the whole `api/` folder to your PHP host, then copy `api/config.example.php` to `api/config.local.php` on that host (not in git — it's gitignored) and fill in your real `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS`. If your host sets environment variables instead, `rsvp.php` falls back to `getenv('DB_HOST')` etc. when `config.local.php` is absent.
+3. Visit `https://your-host/api/rsvp.php` directly — it should return `[]` (an empty JSON array) once the table is empty and reachable.
+4. In `app.js`, set `RSVP_API_URL` near the top of the file to that URL.
+5. Commit and push — GitLab Pages rebuilds automatically (see below).
 
-**This is a light deterrent, not real authentication.** The hash lives in this file's client-side source, and the `hike_data` table's row-level security allows any request carrying the public anon key to write to it — a visitor who reads the page's JavaScript could call the Supabase API directly and skip the passphrase prompt entirely. Only use this for low-stakes trip logistics you'd be fine with a determined visitor tampering with, never for anything sensitive. For real access control, replace this with Supabase Auth and an RLS policy scoped to an authenticated organiser account.
+Anyone with the page link can see the full attendee list, same as the current "Who's in" dashboard already shows to any visitor. `rsvp.php` uses prepared statements (no SQL injection risk from the name field) and a server-side honeypot check as a second line of defence behind the client-side one. It intentionally exposes no `update`/`delete` endpoint, so an RSVP can't be edited or removed once submitted. Do not put anything more sensitive than a name in this table. There's no realtime push with a plain PHP API, so the page polls the API every 20 seconds while the attendee dashboard is open, instead of updating instantly like a websocket-based backend would. Do not treat the acknowledgement text as legal advice; have a local professional review it for organised commercial events.
+
+## Publish on GitLab Pages
+
+GitLab Pages only builds from a project hosted on GitLab — pushing a branch to this GitHub repository does not deploy anything there by itself. To publish this branch:
+
+1. Create a new project on [gitlab.com](https://gitlab.com) (or your self-hosted GitLab instance).
+2. Add it as a second git remote and push this branch to it, e.g.:
+   ```
+   git remote add gitlab https://gitlab.com/YOUR-USERNAME/YOUR-PROJECT.git
+   git push gitlab claude/gitlab-pages-mysql-rsvp:main
+   ```
+3. GitLab detects `.gitlab-ci.yml` in the repo root and runs the `pages` job automatically, which copies the site's static files into a `public/` artifact directory.
+4. Once the pipeline succeeds, open **Settings → Pages** in the GitLab project to see the published URL — typically `https://YOUR-USERNAME.gitlab.io/YOUR-PROJECT/`, or `https://YOUR-USERNAME.gitlab.io` if the project is named `YOUR-USERNAME.gitlab.io`. HTTPS is included for free; a custom domain can be added under the same Pages settings.
+5. `RSVP_API_URL` in `app.js` must point to your separately-hosted `api/rsvp.php` (step 4 in "Shared RSVP storage" above) — GitLab Pages itself only serves the static files, it can't run that script.
 
 ## Publish for free on GitHub Pages
 
@@ -67,24 +54,9 @@ With the Supabase table above already set up, you can also let the organiser edi
 
 For the shortest address, name the repository `YOUR-USERNAME.github.io`; GitHub Pages will publish it at `https://YOUR-USERNAME.github.io`. The `github.io` subdomain and HTTPS are free. A custom domain must be registered separately.
 
-## Publish on WordPress (e.g. an OVHcloud WordPress hosting pack)
+## Publishing on WordPress instead
 
-This is a self-contained, single-page design (no PHP, no build step), so the simplest way to bring it into WordPress is to paste it as a **Custom HTML block** on a page — no plugin required.
-
-`wordpress-embed.html` in this repo is the ready-to-paste version: it inlines `styles.css`, `additions.css`, and `app.js` into one block, and embeds the GPX track data directly in the script (instead of fetching `mercantour-route.gpx` as a separate file), so nothing extra needs to be uploaded to the Media Library.
-
-1. Log in to `wp-admin` on your OVHcloud WordPress hosting.
-2. **Pages → Add new page**. Give it a title (e.g. "Mercantour").
-3. If your theme offers a **blank / full-width / canvas** page template (no header, footer or sidebar), select it under **Page → Template** in the right-hand panel — this design already includes its own navigation, so the theme's header would otherwise show on top of it. Most popular themes (Astra, GeneratePress, OceanWP, Kadence…) offer this template for free.
-4. Add a **Custom HTML** block (type `/html` and pick it), then paste the entire contents of `wordpress-embed.html` into it.
-5. Publish the page. To make it the site's homepage, go to **Settings → Reading**, choose "A static page", and select it.
-
-Notes:
-- Pasting `<style>`/`<script>` tags into a Custom HTML block works out of the box for an **Administrator** account (WordPress grants the `unfiltered_html` capability to admins by default on a normal single-site install, which is what an OVH WordPress hosting pack gives you). If the tags get stripped, install a plugin such as "WPCode" (Insert Headers and Footers) and inject the same content there instead.
-- Fonts, the Leaflet map, and OpenStreetMap tiles are loaded from public CDNs (Google Fonts, unpkg, OpenStreetMap) — this works the same on OVH hosting as it did on GitHub Pages, no extra setup needed.
-- Set up shared RSVP storage and/or the organiser edit panel the same way as above (see "Shared RSVP storage" and "Organiser edit panel") by filling in `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`ADMIN_PASSPHRASE_HASH` inside `wordpress-embed.html`'s `<script>` block before pasting it in — otherwise RSVPs stay per-visitor, same limitation as on GitHub Pages.
-- `wordpress-embed.html` doesn't fetch a separate `hike.yaml` (there's no extra file to host in a single pasted block) — it always uses the `DEFAULT_DATA` object near the end of the `<script>` block. To change the hike details (dates, weather, route stats), edit that object directly, then re-paste the updated block into the WordPress page. Live weather still works the same way, from `DEFAULT_DATA`'s `lat`/`lon`/dates.
-- To regenerate `wordpress-embed.html` after editing `index.html`, `styles.css`, `additions.css`, `app.js` or the GPX file, ask Claude Code to rebuild it (it inlines the CSS/JS and embeds the GPX track as a JS string), or do it by hand: wrap `styles.css` + `additions.css` in one `<style>` tag, paste the page's body content, then add the CDN `<script src>` tags for js-yaml and Supabase followed by one `<script>` tag holding `app.js` with `fetch('./mercantour-route.gpx')` replaced by a `MERCANTOUR_GPX` template-literal constant.
+This branch (`claude/gitlab-pages-mysql-rsvp`) is set up for GitLab Pages + MySQL specifically. For a WordPress deployment (Custom HTML block, optional Supabase-backed RSVP storage and organiser edit panel), see the `claude/wordpress-site-publication-2t1xde` branch instead — the two branches diverge on hosting target and RSVP backend, so pick whichever matches where you're actually publishing.
 
 ## Customise
 
@@ -94,8 +66,8 @@ Edit the hike date, meeting time, and kit reminder in `hike.yaml` (or `index.htm
 
 - Live weather (Open-Meteo) and `hike.yaml` are now actually wired up — see "Editing the hike" above.
 - The hiking-stage cards are recomputed directly from the real GPX track (real per-day distance/ascent/descent), instead of four arbitrary quarters with generic labels — see "Editing the hike" above.
-- Optional shared RSVP storage via Supabase, with automatic fallback to the previous per-browser storage — see "Shared RSVP storage" above.
-- Optional organiser edit panel to update hike details from the browser — see "Organiser edit panel" above.
+- Optional shared RSVP storage via a small PHP API backed by MySQL 8.4, with automatic fallback to the previous per-browser storage — see "Shared RSVP storage (MySQL 8.4)" above.
+- GitLab Pages publishing via `.gitlab-ci.yml` — see "Publish on GitLab Pages" above.
 - **Full bilingual coverage**: the EN/FR toggle now switches the nav, buttons, weather card, stats labels, and every dialog, not just the about/wildlife text.
 - **Add-to-calendar button**: downloads a `.ics` file built from the hike's dates.
 - **Share button**: uses the Web Share API on mobile, falls back to copying the link.
@@ -113,8 +85,9 @@ Edit the hike date, meeting time, and kit reminder in `hike.yaml` (or `index.htm
 - **Units toggle**: km/miles and °C/°F, for a mixed-nationality group.
 - **Zoomable/pannable elevation chart**: the hand-rolled SVG profile is lightweight but fixed-scale; a small charting lib (or hand-written pan/zoom) would let hikers inspect specific sections of a longer route.
 - **Structured data**: a JSON-LD `Event` block in `<head>` so the hike shows up with rich details (dates, location) if the link is ever indexed or pasted into calendar-aware apps.
-- **Stronger organiser auth**: replace the passphrase-hash deterrent with real Supabase Auth once the group/edit surface grows beyond casual trip logistics (see the caveat in "Organiser edit panel").
-- **Rate limiting on RSVP**: the honeypot stops simple bots; a Supabase Edge Function or database trigger capping inserts per IP/time window would handle a determined spammer if the link is ever shared publicly.
+- **Organiser edit panel**: the WordPress/Supabase branch has a passphrase-gated form for editing hike details from the browser; porting it to this branch would mean adding a `hike_data` table and a couple of endpoints to `api/rsvp.php` (or a new `api/hike.php`), with the same "not real authentication" caveat that version documents.
+- **Rate limiting on RSVP**: the honeypot stops simple bots; capping inserts per IP/time window (e.g. a small table tracking recent IPs, checked before the `INSERT` in `rsvp.php`) would handle a determined spammer if the link is ever shared publicly.
+- **HTTPS/CORS hardening on the API**: `rsvp.php` currently sends `Access-Control-Allow-Origin: *` for simplicity; once the GitLab Pages URL is final, restricting that header to just that origin would stop other sites from embedding the same API.
 
 ## Further ideas (content)
 

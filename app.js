@@ -1,16 +1,10 @@
 const $=s=>document.querySelector(s),all=s=>document.querySelectorAll(s),people=JSON.parse(localStorage.getItem('trail-brief-attendees')||'[]');let settings=JSON.parse(localStorage.getItem('trail-brief-settings')||'{"mode":"comfort","tent":2}'),language='en',currentHike=null;
 const t=(en,fr)=>language==='fr'?fr:en;
 
-// Fill these in after creating a free project at supabase.com to share the RSVP list across every visitor
-// instead of storing it only in each visitor's own browser. See README.md "Shared RSVP storage" for setup.
-const SUPABASE_URL='';
-const SUPABASE_ANON_KEY='';
-const supabase=(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase)?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
-
-// Optional organiser edit panel: fill this in with the SHA-256 hex of a passphrase (see README "Organiser edit
-// panel") to let the organiser update hike details from the browser. It's a light deterrent, not real
-// authentication — the hash is visible in this file's source, so never use it to guard anything sensitive.
-const ADMIN_PASSPHRASE_HASH='';
+// Fill this in with the URL of api/rsvp.php once it's deployed on a PHP host that can reach your
+// MySQL 8.4 database, to share the RSVP list across every visitor instead of storing it only in
+// each visitor's own browser. See README.md "Shared RSVP storage (MySQL)" for setup.
+const RSVP_API_URL='';
 
 const experienceStyle=document.createElement('style');experienceStyle.textContent='.language{border:1px solid #9f998e;background:transparent;border-radius:99px;padding:7px 9px;font:700 11px Outfit;cursor:pointer}.photo-gallery{max-width:1180px;margin:0 auto 90px;padding:0 26px;display:grid;grid-template-columns:1fr 1fr;gap:18px}.photo-gallery figure{margin:0;border-radius:15px;overflow:hidden;position:relative;height:290px;background:#183e3a}.photo-gallery img{width:100%;height:100%;object-fit:cover}.photo-gallery figcaption{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,#001b19);padding:32px 16px 13px;color:#fff;font:600 14px Outfit}.map-stages{max-width:1180px;margin:0 auto 70px;padding:0 26px;display:grid;grid-template-columns:1.2fr .8fr;gap:30px}.map-stages h2{font-size:42px;margin:0 0 20px}.map-stages h2 em{font-family:Georgia,serif;font-weight:400}#route-map{height:380px;border-radius:14px;overflow:hidden;background:#d5e6d1;display:grid;place-items:center;font:12px \'DM Mono\'}#route-stages{display:grid;gap:9px}.map-stages article{background:#fffaf0;border-radius:10px;padding:15px}.map-stages article span{color:#ff5b35;font:11px \'DM Mono\'}.map-stages article h3{margin:8px 0 4px;font-size:17px}.map-stages article p{margin:0;font-size:12px;color:#62716b}@media(max-width:760px){.language{display:none}.photo-gallery,.map-stages{grid-template-columns:1fr}.photo-gallery{margin-bottom:55px}.photo-gallery figure{height:220px}.map-stages{padding:0 22px}#route-map{height:300px}}';document.head.append(experienceStyle);
 const polish=document.createElement('style');polish.textContent='#profile-marker{stroke:#ff5b35;stroke-width:2;stroke-dasharray:4 4;pointer-events:none}.verified{font:10px \'DM Mono\';border:1px solid #be4029;border-radius:99px;padding:7px 9px}.outdooractive-link{background:#fffaf0;border:1px solid #d3c8b6;border-radius:99px;padding:12px 15px;color:#103b38;font:700 12px Outfit;text-decoration:none}.join .who-button{background:#fff9ef;border:0;box-shadow:0 8px 0 #c87350;transform:translateY(-4px);padding:16px 23px}.join .who-button:hover{transform:translateY(0);box-shadow:0 3px 0 #c87350}.org-hero{position:relative}.org-hero .small-btn{position:absolute;right:14px;top:14px}';document.head.append(polish);
@@ -66,13 +60,6 @@ async function fetchLiveWeather(hike){
 }
 
 async function loadHikeData(defaults){
-  if(supabase){
-    try{
-      const{data,error}=await supabase.from('hike_data').select('data').eq('id',1).single();
-      if(error)throw error;
-      if(data?.data){load(data.data);fetchLiveWeather(data.data);return}
-    }catch(e){console.warn('No stored hike_data in Supabase yet (or table missing), falling back',e)}
-  }
   try{
     const text=await(await fetch('./hike.yaml')).text();
     const parsed=jsyaml.load(text);
@@ -86,24 +73,25 @@ async function loadHikeData(defaults){
 }
 
 async function fetchAttendees(){
-  if(!supabase)return JSON.parse(localStorage.getItem('trail-brief-attendees')||'[]');
+  if(!RSVP_API_URL)return JSON.parse(localStorage.getItem('trail-brief-attendees')||'[]');
   try{
-    const{data,error}=await supabase.from('rsvps').select('name').order('created_at',{ascending:true});
-    if(error)throw error;
-    return data.map(r=>({name:r.name}));
+    const res=await fetch(RSVP_API_URL);
+    if(!res.ok)throw new Error('RSVP API request failed');
+    return await res.json();
   }catch(e){
-    console.warn('Supabase unavailable, showing the locally cached attendee list',e);
+    console.warn('RSVP API unavailable, showing the locally cached attendee list',e);
     return JSON.parse(localStorage.getItem('trail-brief-attendees')||'[]');
   }
 }
 function subscribeAttendees(){
-  if(!supabase)return;
-  supabase.channel('rsvps-changes').on('postgres_changes',{event:'INSERT',schema:'public',table:'rsvps'},async()=>{
+  if(!RSVP_API_URL)return;
+  // No realtime push with a plain PHP/MySQL API, so poll gently instead to approximate a live list.
+  setInterval(async()=>{
     people.splice(0,people.length,...(await fetchAttendees()));
     localStorage.setItem('trail-brief-attendees',JSON.stringify(people));
     scene();
     if($('#attendees-dialog').open)dashboard();
-  }).subscribe();
+  },20000);
 }
 async function initAttendees(){
   people.splice(0,people.length,...(await fetchAttendees()));
@@ -112,48 +100,20 @@ async function initAttendees(){
   subscribeAttendees();
 }
 
-async function sha256Hex(text){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('')}
-function showAdminForm(){
-  $('#admin-lock-view').hidden=true;$('#admin-form-view').hidden=false;
-  const h=currentHike||DEFAULT_DATA;
-  $('#admin-title').value=h.hike?.title||'';$('#admin-start').value=h.hike?.start_date||'';$('#admin-end').value=h.hike?.end_date||'';$('#admin-meet').value=h.hike?.meet_time||'';$('#admin-travel').value=h.hike?.travel||'';$('#admin-weather-location').value=h.weather?.location||'';$('#admin-lat').value=h.weather?.lat??'';$('#admin-lon').value=h.weather?.lon??'';$('#admin-distance').value=h.route?.distance||'';$('#admin-ascent').value=h.route?.ascent||'';$('#admin-highest').value=h.route?.highest_point||'';$('#admin-duration').value=h.route?.duration||'';$('#admin-difficulty').value=h.route?.difficulty||'';$('#admin-description').value=h.route?.description||'';
-}
-function injectAdminUI(){
-  if(!supabase||!ADMIN_PASSPHRASE_HASH)return;
-  document.querySelector('nav').insertAdjacentHTML('beforeend','<button class="settings-button" id="admin-button" title="Organiser edit">✎</button>');
-  document.body.insertAdjacentHTML('beforeend','<dialog id="admin-dialog"><form><button class="close" type="button" data-close="admin-dialog" aria-label="Close">×</button><div id="admin-lock-view"><p class="eyebrow">ORGANISER ACCESS</p><h3>Enter passphrase</h3><label>Passphrase<input id="admin-pass" type="password"></label><button class="primary" type="button" id="admin-unlock">Unlock →</button></div><div id="admin-form-view" hidden><p class="eyebrow">EDIT HIKE</p><h3>Update hike details</h3><label>Title<input id="admin-title"></label><div class="coord-row"><label>Start date<input id="admin-start" type="date"></label><label>End date<input id="admin-end" type="date"></label></div><label>Meet time<input id="admin-meet"></label><label>Travel note<input id="admin-travel"></label><div class="coord-row"><label>Weather location<input id="admin-weather-location"></label><label>Latitude<input id="admin-lat" type="number" step="any"></label></div><label>Longitude<input id="admin-lon" type="number" step="any"></label><div class="coord-row"><label>Distance<input id="admin-distance"></label><label>Ascent<input id="admin-ascent"></label></div><div class="coord-row"><label>Highest point<input id="admin-highest"></label><label>Duration<input id="admin-duration"></label></div><label>Difficulty<input id="admin-difficulty"></label><label>Route description<input id="admin-description"></label><button class="primary" type="button" id="admin-save">Save for everyone →</button></div></form></dialog>');
-  $('#admin-button').onclick=()=>{$('#admin-dialog').showModal();if(sessionStorage.getItem('trail-brief-admin')==='1'){showAdminForm()}else{$('#admin-pass').focus()}};
-  $('#admin-unlock').onclick=async e=>{e.preventDefault();if(await sha256Hex($('#admin-pass').value)!==ADMIN_PASSPHRASE_HASH){alert('Wrong passphrase.');return}sessionStorage.setItem('trail-brief-admin','1');showAdminForm()};
-  $('#admin-save').onclick=async e=>{
-    e.preventDefault();
-    const data=JSON.parse(JSON.stringify(currentHike||DEFAULT_DATA));
-    data.hike=data.hike||{};data.weather=data.weather||{};data.route=data.route||{};
-    data.hike.title=$('#admin-title').value;data.hike.start_date=$('#admin-start').value;data.hike.end_date=$('#admin-end').value;data.hike.meet_time=$('#admin-meet').value;data.hike.travel=$('#admin-travel').value;
-    data.weather.location=$('#admin-weather-location').value;data.weather.lat=parseFloat($('#admin-lat').value)||null;data.weather.lon=parseFloat($('#admin-lon').value)||null;
-    data.route.distance=$('#admin-distance').value;data.route.ascent=$('#admin-ascent').value;data.route.highest_point=$('#admin-highest').value;data.route.duration=$('#admin-duration').value;data.route.difficulty=$('#admin-difficulty').value;data.route.description=$('#admin-description').value;
-    try{
-      const{error}=await supabase.from('hike_data').upsert({id:1,data});
-      if(error)throw error;
-      load(data);fetchLiveWeather(data);
-      close('admin-dialog');
-      alert('Saved — every visitor now sees this.');
-    }catch(err){console.error(err);alert('Could not save — check your connection and try again.')}
-  };
-}
-
 $('#settings-button').onclick=()=>{$('#comfort-mode').value=settings.mode;$('#tent-capacity').value=settings.tent;$('#settings-dialog').showModal();$('#comfort-mode').focus()};$('#save-settings').onclick=e=>{e.preventDefault();settings={mode:$('#comfort-mode').value,tent:+$('#tent-capacity').value||2};localStorage.setItem('trail-brief-settings',JSON.stringify(settings));close('settings-dialog');scene()};
 $('#join-button').onclick=()=>{$('#rsvp-dialog').showModal();$('#rsvp-name').focus()};$('#who-button').onclick=dashboard;$('#top-who-button').onclick=dashboard;
 $('#submit-rsvp').onclick=async e=>{
   e.preventDefault();
-  if($('#rsvp-company').value)return;
+  const honeypot=$('#rsvp-company').value;
+  if(honeypot)return;
   const nameInput=$('#rsvp-name');
   if(!nameInput.reportValidity()||!$('#accept-terms').checked)return;
   const name=nameInput.value.trim(),btn=$('#submit-rsvp'),original=btn.innerHTML;
   btn.disabled=true;btn.textContent=t('Saving…','Enregistrement…');
   try{
-    if(supabase){
-      const{error}=await supabase.from('rsvps').insert({name});
-      if(error)throw error;
+    if(RSVP_API_URL){
+      const res=await fetch(RSVP_API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,company:honeypot})});
+      if(!res.ok)throw new Error('RSVP API request failed');
       people.splice(0,people.length,...(await fetchAttendees()));
     }else{
       people.push({name});
@@ -193,4 +153,3 @@ const DEFAULT_DATA={hike:{title:'Mercantour: mountain weekend',dates:'Friday 04 
 load(DEFAULT_DATA);
 loadHikeData(DEFAULT_DATA);
 initAttendees();
-injectAdminUI();
