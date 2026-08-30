@@ -16,7 +16,7 @@ Weather is fetched live from [Open-Meteo](https://open-meteo.com) (no API key ne
 
 By default the RSVP list is stored only in each visitor's own browser (`localStorage`), so nobody sees a shared attendee count. This branch stores RSVPs in a MySQL 8.4 database instead, through a small PHP API (`api/rsvp.php`) — with the local-browser storage kept automatically as an offline fallback if that API isn't configured or is unreachable.
 
-**GitLab Pages only serves static files — it cannot run PHP or talk to a database.** `api/rsvp.php` needs to be deployed on a separate PHP 8+ host that can reach your MySQL 8.4 server (for example your existing OVH hosting, which already runs PHP + MySQL for WordPress). The GitLab-hosted page then calls that API's public URL over HTTPS.
+**GitHub Pages only serves static files — it cannot run PHP or talk to a database.** `api/rsvp.php` needs to be deployed on a separate PHP 8+ host that can reach your MySQL 8.4 server (for example your existing OVH hosting, which already runs PHP + MySQL for WordPress). The GitHub-hosted page then calls that API's public URL over HTTPS. In other words: the RSVP data itself lives in the MySQL database on that PHP host — not on GitHub Pages, which only ever serves the static `index.html`/`app.js`/etc. and never sees a database credential.
 
 To set it up:
 
@@ -27,36 +27,23 @@ To set it up:
 2. Upload the whole `api/` folder to your PHP host, then copy `api/config.example.php` to `api/config.local.php` on that host (not in git — it's gitignored) and fill in your real `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS`. If your host sets environment variables instead, `rsvp.php` falls back to `getenv('DB_HOST')` etc. when `config.local.php` is absent.
 3. Visit `https://your-host/api/rsvp.php` directly — it should return `[]` (an empty JSON array) once the table is empty and reachable.
 4. In `app.js`, set `RSVP_API_URL` near the top of the file to that URL.
-5. Commit and push — GitLab Pages rebuilds automatically (see below).
+5. Commit and push — GitHub Pages rebuilds automatically (see below).
 
 Anyone with the page link can see the full attendee list, same as the current "Who's in" dashboard already shows to any visitor. `rsvp.php` uses prepared statements (no SQL injection risk from the name field) and a server-side honeypot check as a second line of defence behind the client-side one. It intentionally exposes no `update`/`delete` endpoint, so an RSVP can't be edited or removed once submitted. Do not put anything more sensitive than a name in this table. There's no realtime push with a plain PHP API, so the page polls the API every 20 seconds while the attendee dashboard is open, instead of updating instantly like a websocket-based backend would. Do not treat the acknowledgement text as legal advice; have a local professional review it for organised commercial events.
 
-## Publish on GitLab Pages
-
-GitLab Pages only builds from a project hosted on GitLab — pushing a branch to this GitHub repository does not deploy anything there by itself. To publish this branch:
-
-1. Create a new project on [gitlab.com](https://gitlab.com) (or your self-hosted GitLab instance).
-2. Add it as a second git remote and push this branch to it, e.g.:
-   ```
-   git remote add gitlab https://gitlab.com/YOUR-USERNAME/YOUR-PROJECT.git
-   git push gitlab claude/gitlab-pages-mysql-rsvp:main
-   ```
-3. GitLab detects `.gitlab-ci.yml` in the repo root and runs the `pages` job automatically, which copies the site's static files into a `public/` artifact directory.
-4. Once the pipeline succeeds, open **Settings → Pages** in the GitLab project to see the published URL — typically `https://YOUR-USERNAME.gitlab.io/YOUR-PROJECT/`, or `https://YOUR-USERNAME.gitlab.io` if the project is named `YOUR-USERNAME.gitlab.io`. HTTPS is included for free; a custom domain can be added under the same Pages settings.
-5. `RSVP_API_URL` in `app.js` must point to your separately-hosted `api/rsvp.php` (step 4 in "Shared RSVP storage" above) — GitLab Pages itself only serves the static files, it can't run that script.
-
 ## Publish for free on GitHub Pages
 
-1. Create a new GitHub repository and upload these three files to its root.
-2. In the repository, open **Settings → Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**, then select `main` and `/ (root)`.
-4. GitHub publishes it at `https://YOUR-USERNAME.github.io/REPOSITORY-NAME/`.
+This repository is already named `hikingpages.github.io`, which is GitHub's special naming convention for a user/organisation site — once this branch is merged into (or pushed as) `main`:
 
-For the shortest address, name the repository `YOUR-USERNAME.github.io`; GitHub Pages will publish it at `https://YOUR-USERNAME.github.io`. The `github.io` subdomain and HTTPS are free. A custom domain must be registered separately.
+1. In the repository, open **Settings → Pages**.
+2. Under **Build and deployment**, choose **Deploy from a branch**, then select `main` and `/ (root)`.
+3. GitHub publishes it at `https://hikingpages.github.io` directly (no `/REPOSITORY-NAME/` suffix, since the repo name matches the special `USERNAME.github.io` pattern). HTTPS is included for free; a custom domain can be added under the same Pages settings.
+
+**GitHub Pages only serves static files (HTML/CSS/JS) — it cannot run the PHP script that talks to MySQL.** Once published, set `RSVP_API_URL` in `app.js` to wherever you've deployed `api/rsvp.php` (see "Shared RSVP storage (MySQL 8.4)" above) before pushing; GitHub Pages will pick up the change on the next push to `main`, same as any other file.
 
 ## Publishing on WordPress instead
 
-This branch (`claude/gitlab-pages-mysql-rsvp`) is set up for GitLab Pages + MySQL specifically. For a WordPress deployment (Custom HTML block, optional Supabase-backed RSVP storage and organiser edit panel), see the `claude/wordpress-site-publication-2t1xde` branch instead — the two branches diverge on hosting target and RSVP backend, so pick whichever matches where you're actually publishing.
+This branch (`claude/github-pages-mysql-rsvp`) is set up for GitHub Pages + MySQL specifically. For a WordPress deployment (Custom HTML block, optional Supabase-backed RSVP storage and organiser edit panel), see the `claude/wordpress-site-publication-2t1xde` branch instead — the two branches diverge on hosting target and RSVP backend, so pick whichever matches where you're actually publishing.
 
 ## Customise
 
@@ -67,7 +54,7 @@ Edit the hike date, meeting time, and kit reminder in `hike.yaml` (or `index.htm
 - Live weather (Open-Meteo) and `hike.yaml` are now actually wired up — see "Editing the hike" above.
 - The hiking-stage cards are recomputed directly from the real GPX track (real per-day distance/ascent/descent), instead of four arbitrary quarters with generic labels — see "Editing the hike" above.
 - Optional shared RSVP storage via a small PHP API backed by MySQL 8.4, with automatic fallback to the previous per-browser storage — see "Shared RSVP storage (MySQL 8.4)" above.
-- GitLab Pages publishing via `.gitlab-ci.yml` — see "Publish on GitLab Pages" above.
+- Publishes directly on GitHub Pages, taking advantage of this repo's `hikingpages.github.io` name — see "Publish for free on GitHub Pages" above.
 - **Full bilingual coverage**: the EN/FR toggle now switches the nav, buttons, weather card, stats labels, and every dialog, not just the about/wildlife text.
 - **Add-to-calendar button**: downloads a `.ics` file built from the hike's dates.
 - **Share button**: uses the Web Share API on mobile, falls back to copying the link.
@@ -87,7 +74,7 @@ Edit the hike date, meeting time, and kit reminder in `hike.yaml` (or `index.htm
 - **Structured data**: a JSON-LD `Event` block in `<head>` so the hike shows up with rich details (dates, location) if the link is ever indexed or pasted into calendar-aware apps.
 - **Organiser edit panel**: the WordPress/Supabase branch has a passphrase-gated form for editing hike details from the browser; porting it to this branch would mean adding a `hike_data` table and a couple of endpoints to `api/rsvp.php` (or a new `api/hike.php`), with the same "not real authentication" caveat that version documents.
 - **Rate limiting on RSVP**: the honeypot stops simple bots; capping inserts per IP/time window (e.g. a small table tracking recent IPs, checked before the `INSERT` in `rsvp.php`) would handle a determined spammer if the link is ever shared publicly.
-- **HTTPS/CORS hardening on the API**: `rsvp.php` currently sends `Access-Control-Allow-Origin: *` for simplicity; once the GitLab Pages URL is final, restricting that header to just that origin would stop other sites from embedding the same API.
+- **HTTPS/CORS hardening on the API**: `rsvp.php` currently sends `Access-Control-Allow-Origin: *` for simplicity; restricting that header to just `https://hikingpages.github.io` would stop other sites from embedding the same API.
 
 ## Further ideas (content)
 
