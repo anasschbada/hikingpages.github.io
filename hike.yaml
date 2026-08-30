@@ -47,7 +47,7 @@ route:
   duration: "3 days"
   highest_point: "2,688 m"
   difficulty: "Challenging multi-day hike"
-  description: "A demanding 28.3 km GPX route with 2,325 m ascent and descent. Expect sustained climbing, high-altitude exposure and changing mountain conditions."
+  description: "A demanding 28.3 km loop with 2,325 m ascent and descent: a steep climb to the 2,688 m high point on day one, a high alpine traverse on day two, and a long descent back to the trailhead on day three."
   elevation_profile: [1684, 1740, 1840, 2010, 2190, 2380, 2560, 2688, 2500, 2320, 2100, 1880, 1684]
 
 wildlife:
